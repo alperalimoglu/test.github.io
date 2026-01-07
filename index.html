@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Gallery</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: #111827cc;
+      --text: #e2e8f0;
+      --accent: #38bdf8;
+      --muted: #94a3b8;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 25% 25%, rgba(56, 189, 248, 0.08), transparent 30%),
+                  radial-gradient(circle at 80% 10%, rgba(168, 85, 247, 0.08), transparent 25%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header { padding: 32px 24px 12px; text-align: center; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.03em; }
+    .tagline { margin: 8px 0 16px; color: var(--muted); font-size: 15px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border: 1px solid rgba(226, 232, 240, 0.15);
+      border-radius: 999px; background: rgba(255, 255, 255, 0.04);
+      color: var(--text); font-size: 13px; text-decoration: none;
+      transition: transform 120ms ease, border-color 120ms ease;
+    }
+    .pill:hover { transform: translateY(-1px); border-color: rgba(56, 189, 248, 0.4); }
+    main { padding: 20px 18px 56px; max-width: 1280px; margin: 0 auto; }
+
+    /* Slider */
+    .slider {
+      position: relative;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid rgba(226, 232, 240, 0.08);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      max-width: 1100px;
+    }
+    .hero {
+      width: 100%;
+      height: clamp(360px, 55vw, 640px);
+      object-fit: contain;
+      background: #0b1224;
+      display: block;
+    }
+    .caption-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      color: var(--muted);
+      font-size: 14px;
+      border-top: 1px solid rgba(226, 232, 240, 0.08);
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(8px);
+    }
+    .caption { color: var(--text); font-weight: 600; }
+    .count { color: var(--muted); }
+
+    .controls {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    .nav-btn {
+      pointer-events: auto;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(226, 232, 240, 0.15);
+      color: var(--text);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      margin: 0 12px;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    .nav-btn:hover { transform: translateY(-1px); border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.18); }
+
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 10px 16px;
+      background: rgba(15, 23, 42, 0.6);
+      border-top: 1px solid rgba(226, 232, 240, 0.08);
+      flex-wrap: wrap;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(226, 232, 240, 0.35);
+      background: rgba(226, 232, 240, 0.12);
+      padding: 0;
+      cursor: pointer;
+      transition: width 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+    .dot[aria-current="true"] {
+      width: 28px;
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+    }
+
+    .playback {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 0 4px;
+    }
+    .ghost-btn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(226, 232, 240, 0.18);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      transition: transform 120ms ease, border-color 120ms ease;
+    }
+    .ghost-btn:hover { transform: translateY(-1px); border-color: rgba(56, 189, 248, 0.4); }
+
+    .progress {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 3px;
+      background: rgba(226, 232, 240, 0.08);
+    }
+    .progress .bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width linear;
+    }
+
+    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 22px 0 12px; }
+    .empty {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--muted);
+      border: 1px dashed rgba(226, 232, 240, 0.25);
+      border-radius: 12px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="slider" class="slider" aria-live="polite">
+      <img id="hero" class="hero" src="" alt="Gallery slide">
+      <div class="controls" aria-hidden="true">
+        <button id="prev" class="nav-btn" aria-label="Previous slide">‹</button>
+        <button id="next" class="nav-btn" aria-label="Next slide">›</button>
+      </div>
+      <div class="caption-bar">
+        <span id="caption" class="caption"></span>
+        <span id="counter" class="count"></span>
+      </div>
+      <div class="progress"><div id="progressBar" class="bar"></div></div>
+      <div class="dots" id="dots" role="tablist" aria-label="Slide selector"></div>
+    </div>
+    <div class="playback">
+      <button id="playPause" class="ghost-btn">Pause autoplay</button>
+      <button id="restart" class="ghost-btn">Restart from first</button>
+    </div>
+    <div id="empty" class="empty" hidden>No images found yet.</div>
+  </main>
+
+  <footer>
+    Static gallery · No build tools required · Works on GitHub Pages
+  </footer>
+
+  <script>
+    // List your images here. Add filenames and optional captions.
+    const images = [
+      { src: "image0.jpeg", caption: "Photo 0" },
+      { src: "image1.jpeg", caption: "Photo 1" },
+      { src: "image2.jpeg", caption: "Photo 2" },
+      { src: "image3.jpeg", caption: "Photo 3" },
+      { src: "image4.jpeg", caption: "Photo 4" },
+      { src: "image5.jpeg", caption: "Photo 5" },
+      { src: "image6.jpeg", caption: "Photo 6" },
+      { src: "image7.jpeg", caption: "Photo 7" },
+      { src: "image8.jpeg", caption: "Photo 8" },
+      { src: "image9.jpeg", caption: "Photo 9" },
+      { src: "image10.jpeg", caption: "Photo 10" },
+      { src: "image11.jpeg", caption: "Photo 11" },
+      { src: "image12.jpeg", caption: "Photo 12" },
+      { src: "image13.jpeg", caption: "Photo 13" },
+      { src: "image14.jpeg", caption: "Photo 14" },
+      { src: "image15.jpeg", caption: "Photo 15" },
+      { src: "image16.jpeg", caption: "Photo 16" },
+      { src: "image17.jpeg", caption: "Photo 17" },
+      { src: "image18.jpeg", caption: "Photo 18" },
+      { src: "image19.jpeg", caption: "Photo 19" },
+      { src: "image20.jpeg", caption: "Photo 20" },
+      { src: "image21.jpeg", caption: "Photo 21" },
+      { src: "image22.jpeg", caption: "Photo 22" },
+      { src: "image23.jpeg", caption: "Photo 23" },
+      { src: "image24.jpeg", caption: "Photo 24" },
+      { src: "image25.jpeg", caption: "Photo 25" },
+      { src: "image26.jpeg", caption: "Photo 26" },
+      { src: "image28.png", caption: "Photo 28" },
+      { src: "image30.png", caption: "Photo 30" },
+      { src: "image31.jpeg", caption: "Photo 31" }
+    ];
+
+    const hero = document.getElementById("hero");
+    const captionEl = document.getElementById("caption");
+    const counterEl = document.getElementById("counter");
+    const dotsEl = document.getElementById("dots");
+    const empty = document.getElementById("empty");
+    const slider = document.getElementById("slider");
+    const playPauseBtn = document.getElementById("playPause");
+    const restartBtn = document.getElementById("restart");
+    const progressBar = document.getElementById("progressBar");
+
+    let current = 0;
+    const autoplayMs = 3500;
+    let timer = null;
+
+    function buildDots() {
+      dotsEl.innerHTML = "";
+      images.forEach((_, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "dot";
+        btn.type = "button";
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-label", `Go to slide ${idx + 1}`);
+        btn.addEventListener("click", () => goTo(idx));
+        dotsEl.appendChild(btn);
+      });
+    }
+
+    function goTo(index) {
+      if (!images.length) return;
+      current = (index + images.length) % images.length;
+      const item = images[current];
+      hero.src = item.src;
+      hero.alt = item.caption || "Gallery image";
+      captionEl.textContent = item.caption || "Untitled photo";
+      counterEl.textContent = `${current + 1} / ${images.length}`;
+
+      [...dotsEl.children].forEach((dot, idx) => {
+        dot.setAttribute("aria-current", idx === current ? "true" : "false");
+      });
+
+      restartProgress();
+    }
+
+    function next() { goTo(current + 1); }
+    function prev() { goTo(current - 1); }
+
+    function startAutoplay() {
+      stopAutoplay();
+      playPauseBtn.textContent = "Pause autoplay";
+      timer = setInterval(next, autoplayMs);
+      restartProgress();
+    }
+
+    function stopAutoplay() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      playPauseBtn.textContent = "Play autoplay";
+      progressBar.style.width = "0%";
+    }
+
+    function toggleAutoplay() {
+      if (timer) {
+        stopAutoplay();
+      } else {
+        startAutoplay();
+      }
+    }
+
+    function restartProgress() {
+      // Animate progress bar from 0 to 100% over autoplayMs.
+      progressBar.style.transition = "none";
+      progressBar.style.width = "0%";
+      requestAnimationFrame(() => {
+        progressBar.style.transition = `width ${autoplayMs}ms linear`;
+        progressBar.style.width = "100%";
+      });
+    }
+
+    document.getElementById("next").addEventListener("click", () => { next(); startAutoplay(); });
+    document.getElementById("prev").addEventListener("click", () => { prev(); startAutoplay(); });
+    playPauseBtn.addEventListener("click", toggleAutoplay);
+    restartBtn.addEventListener("click", () => { goTo(0); startAutoplay(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") { next(); startAutoplay(); }
+      if (e.key === "ArrowLeft") { prev(); startAutoplay(); }
+    });
+    hero.onerror = () => { captionEl.textContent = "Image failed to load"; };
+
+    function init() {
+      if (!images.length) {
+        slider.hidden = true;
+        empty.hidden = false;
+        return;
+      }
+      buildDots();
+      goTo(0);
+      startAutoplay();
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
